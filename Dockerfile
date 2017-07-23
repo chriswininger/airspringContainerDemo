@@ -12,18 +12,26 @@ rm -f /lib/systemd/system/basic.target.wants/*; \
 rm -f /lib/systemd/system/anaconda.target.wants/*;
 VOLUME [ "/sys/fs/cgroup" ]
 VOLUME [ "/data/db" ]
-VOLUME [ "/airstep1" ]
 CMD ["/usr/sbin/init"]
 #---------------------------------------
 # --- Intall our dependencies ---
+ADD ./docker-files/start.sh /start.sh
+ADD ./docker-files/airstep1 /airstep1
 ADD ./docker-files/repos /docker-files/repos
 ADD ./docker-files/src /docker-files/src
 ADD ./docker-files/node-install-script /docker-files/node-install-script
+ADD ./docker-files/usr/lib64 /binaries
 COPY /docker-files/repos /etc/yum.repos.d/
+COPY /binaries/libpgm-5.2.so.0 /usr/lib64/
+COPY /libpgm-5.2.so.0.0.122 /usr/lib64/
+COPY /libzmq.so.4 /usr/lib64/
+COPY /libzmq.so.4.0.0 /usr/lib64/
+
 #RUN mkdir /data
 #RUN mkdir /data/db
 RUN yum -y install -y mongodb-org-2.6.10 mongodb-org-server-2.6.10 mongodb-org-shell-2.6.10 mongodb-org-mongos-2.6.10 mongodb-org-tools-2.6.10 curl
 RUN yum -y install gcc make
+RUN net-tools-2.0-0.17.20131004git.el7.x86_64 zip unzip nc
 RUN cd /docker-files/src/redis-3.0.4 && \
    make && \
    cd ./src && \
@@ -70,8 +78,9 @@ RUN cd ./phantomjs \
    && python build.py \
    && ln -s /phantomjs/bin/phantomjs /usr/local/bin/phantomjs
 
+RUN adduser memcacheUser
 # Consider just specifying a branch at build and then mapping a volume onto that, currently for example the config overrides in my root os airstep will cause issuess
 #  or maybe you specify a branch an volume, if not volume we will create it, it no git report there we will clone, otherwise just checkout
 
 # After build run docker run -ti -v /home/chris/PHPStromProjects/airstep1:/airstep1 -v /home/chris/.ssh:/root/.ssh  airspring-container-demo /bin/bash
-
+CMD [start.sh]
