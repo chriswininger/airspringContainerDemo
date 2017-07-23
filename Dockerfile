@@ -22,7 +22,7 @@ ADD ./docker-files/node-install-script /docker-files/node-install-script
 COPY /docker-files/repos /etc/yum.repos.d/
 #RUN mkdir /data
 #RUN mkdir /data/db
-RUN yum -y install -y mongodb-org-2.6.10 mongodb-org-server-2.6.10 mongodb-org-shell-2.6.10 mongodb-org-mongos-2.6.10 mongodb-org-tools-2.6.10
+RUN yum -y install -y mongodb-org-2.6.10 mongodb-org-server-2.6.10 mongodb-org-shell-2.6.10 mongodb-org-mongos-2.6.10 mongodb-org-tools-2.6.10 curl
 RUN yum -y install gcc make
 RUN cd /docker-files/src/redis-3.0.4 && \
    make && \
@@ -36,28 +36,39 @@ RUN cd /docker-files/src/redis-3.0.4 && \
  # echo never > /sys/kernel/mm/transparent_hugepage/enabled && \  https://github.com/openfirmware/docker-redis/issues/1
   cp /docker-files/src/redis.conf /etc/redis/6379.confa
 # run 0.10.x setup form https://rpm.nodesource.com/setup
-RUN chmod +x /docker-files/node-install-script/setup
-RUN /docker-files/node-install-script/setup
-RUN yum -y install nodejs npm
-RUN npm install -g gulp
+#RUN chmod +x /docker-files/node-install-script/setup
+#RUN /docker-files/node-install-script/setup
+#RUN yum -y install nodejs npm
+#RUN npm install -g gulp
+
+# install node and npm using nvm
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 6.9.2
+RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash \
+   && source $NVM_DIR/nvm.sh \
+   && nvm install $NODE_VERSION \
+   && nvm alias default $NODE_VERSION \
+   && nvm use default \
+   && npm install -g gulp
+
 RUN yum -y install openssh-clients
 RUN yum -y install git
 RUN yum -y install memcached
-RUN yum -y install zeromq zeromq-devel
+#RUN yum -y install zeromq zeromq-devel
 RUN yum -y install glib*
 
 # For PhantomJS (http://phantomjs.org/build.html)
-yum -y install gcc gcc-c++ make flex bison gperf ruby \
+RUN yum -y install gcc-c++ flex bison gperf ruby \
   openssl-devel freetype-devel fontconfig-devel libicu-devel sqlite-devel \
   libpng-devel libjpeg-devel
 RUN cd /
-RUN git clone git://github.com/ariya/phantomjs.git
-RUN cd phantomjs
-RUN git checkout 2.1.1
-RUN git submodule init
-RUN git submodule update
-RUN python build.py
-RUN ln -s /phantomjs/bin/phantomjs /usr/local/bin/phantomjs
+RUN git clone https://github.com/ariya/phantomjs.git
+RUN cd ./phantomjs \
+	&& git checkout 2.1.1 \
+   && git submodule init \
+   && git submodule update \
+   && python build.py \
+   && ln -s /phantomjs/bin/phantomjs /usr/local/bin/phantomjs
 
 # Consider just specifying a branch at build and then mapping a volume onto that, currently for example the config overrides in my root os airstep will cause issuess
 #  or maybe you specify a branch an volume, if not volume we will create it, it no git report there we will clone, otherwise just checkout
