@@ -11,6 +11,8 @@ rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
 rm -f /lib/systemd/system/basic.target.wants/*; \
 rm -f /lib/systemd/system/anaconda.target.wants/*;
 VOLUME [ "/sys/fs/cgroup" ]
+VOLUME [ "/data/db" ]
+VOLUME [ "/airstep1" ]
 CMD ["/usr/sbin/init"]
 #---------------------------------------
 # --- Intall our dependencies ---
@@ -18,6 +20,8 @@ ADD ./docker-files/repos /docker-files/repos
 ADD ./docker-files/src /docker-files/src
 ADD ./docker-files/node-install-script /docker-files/node-install-script
 COPY /docker-files/repos /etc/yum.repos.d/
+#RUN mkdir /data
+#RUN mkdir /data/db
 RUN yum -y install -y mongodb-org-2.6.10 mongodb-org-server-2.6.10 mongodb-org-shell-2.6.10 mongodb-org-mongos-2.6.10 mongodb-org-tools-2.6.10
 RUN yum -y install gcc make
 RUN cd /docker-files/src/redis-3.0.4 && \
@@ -35,4 +39,28 @@ RUN cd /docker-files/src/redis-3.0.4 && \
 RUN chmod +x /docker-files/node-install-script/setup
 RUN /docker-files/node-install-script/setup
 RUN yum -y install nodejs npm
+RUN npm install -g gulp
+RUN yum -y install openssh-clients
+RUN yum -y install git
+RUN yum -y install memcached
+RUN yum -y install zeromq zeromq-devel
+RUN yum -y install glib*
+
+# For PhantomJS (http://phantomjs.org/build.html)
+yum -y install gcc gcc-c++ make flex bison gperf ruby \
+  openssl-devel freetype-devel fontconfig-devel libicu-devel sqlite-devel \
+  libpng-devel libjpeg-devel
+RUN cd /
+RUN git clone git://github.com/ariya/phantomjs.git
+RUN cd phantomjs
+RUN git checkout 2.1.1
+RUN git submodule init
+RUN git submodule update
+RUN python build.py
+RUN ln -s /phantomjs/bin/phantomjs /usr/local/bin/phantomjs
+
+# Consider just specifying a branch at build and then mapping a volume onto that, currently for example the config overrides in my root os airstep will cause issuess
+#  or maybe you specify a branch an volume, if not volume we will create it, it no git report there we will clone, otherwise just checkout
+
+# After build run docker run -ti -v /home/chris/PHPStromProjects/airstep1:/airstep1 -v /home/chris/.ssh:/root/.ssh  airspring-container-demo /bin/bash
 
